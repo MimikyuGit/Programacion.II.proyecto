@@ -1,0 +1,21 @@
+#cache y compilados de python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+#env
+venv/
+.venv/
+env/
+
+#sqlite local
+*.db
+*.sqlite
+*.sqlite3
+
+#variables entorno
+.env
+.vscode/
+.idea/
