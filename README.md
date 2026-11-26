@@ -27,4 +27,25 @@ Proyecto integrador desarrollado para la asignatura **Programación 2** — Depa
 
 ## Cómo Ejecutar el Proyecto
 
-...
+Desde la raíz del repositorio, ejecuta:
+
+```bash
+python -m ui.busqueda
+```
+
+En la ventana de búsqueda, escribe una patente y haz clic en **Buscar** o presiona Enter. Esta versión usa datos de ejemplo.
+
+| Patente | Resultado esperado |
+| :--- | :--- |
+| `ABCD12` | Muestra el Toyota Yaris. |
+| `EFGH34` | Muestra el Hyundai Accent. |
+| `ZZZZ99` | Indica que no se encontró el vehículo. |
+| Campo vacío | Pide ingresar una patente. |
+
+### Probar el registro de vehículos
+
+1. En **Registro de vehículos**, ingresa una patente nueva como `JK-LM-56`, un nombre como `Ana Pérez` y un teléfono como `912345678`. Haz clic en **Registrar**. La confirmación muestra la patente normalizada `JKLM56`.
+2. Busca `JKLM56` para comprobar que aparece el vehículo. Si intentas registrarlo de nuevo, verás el aviso de patente duplicada.
+3. Prueba con la patente vacía, el nombre vacío o un teléfono de menos de seis caracteres para ver el mensaje correspondiente.
+
+Los registros de esta demostración se guardan en memoria y se pierden al cerrar la aplicación.
