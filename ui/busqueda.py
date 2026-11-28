@@ -6,6 +6,8 @@ from datetime import datetime
 from tkinter import ttk
 from typing import Protocol
 
+from domain.modalidades import CobroDiario, CobroPorMinuto, ResultadoCobro
+
 
 @dataclass(frozen=True)
 class Vehiculo:
@@ -21,6 +23,7 @@ class EstadiaPresente:
     patente: str
     modalidad: str
     fecha_ingreso: datetime
+    fecha_salida: datetime | None = None
 
 
 class ResultadoIngreso(Protocol):
@@ -101,6 +104,24 @@ class ServicioVehiculosDeEjemplo:
     def listar_presentes(self) -> tuple[EstadiaPresente, ...]:
         return tuple(self.estadias_presentes.values())
 
+    def registrar_salida(
+        self, patente: str, fecha_salida: datetime | None = None
+    ) -> tuple[EstadiaPresente, ResultadoCobro]:
+        patente = validar_patente(patente)
+        if patente not in self.vehiculos:
+            raise ValueError(f"No existe vehículo registrado con patente {patente}.")
+        estadia = self.estadias_presentes.get(patente)
+        if estadia is None:
+            raise ValueError(
+                f"El vehículo {patente} no tiene una estadía activa para registrar salida."
+            )
+        salida = fecha_salida or datetime.now()
+        modalidades = {"Por minuto": CobroPorMinuto(), "Diaria": CobroDiario()}
+        resultado = modalidades[estadia.modalidad].calcular_cobro(estadia.fecha_ingreso, salida)
+        cerrada = EstadiaPresente(patente, estadia.modalidad, estadia.fecha_ingreso, salida)
+        del self.estadias_presentes[patente]
+        return cerrada, resultado
+
 
 class VentanaBusqueda(ttk.Frame):
     def __init__(
@@ -110,17 +131,19 @@ class VentanaBusqueda(ttk.Frame):
         registrar_vehiculo: Callable[[str, str, str], Vehiculo],
         registrar_ingreso: Callable[[str, str], ResultadoIngreso],
         listar_presentes: Callable[[], tuple[EstadiaPresente, ...]],
+        registrar_salida: Callable[[str], tuple[EstadiaPresente, ResultadoCobro]],
     ) -> None:
         super().__init__(ventana, padding=20)
         self.buscar_vehiculo = buscar_vehiculo
         self.registrar_vehiculo = registrar_vehiculo
         self.registrar_ingreso = registrar_ingreso
         self.listar_presentes = listar_presentes
+        self.registrar_salida = registrar_salida
         self.patente = tk.StringVar(master=self)
         self.mensaje = tk.StringVar(master=self)
 
         ventana.title("Gestión de estacionamiento")
-        ventana.minsize(460, 570)
+        ventana.minsize(460, 700)
         self.pack(fill="both", expand=True)
         self.columnconfigure(0, weight=1)
 
@@ -190,17 +213,33 @@ class VentanaBusqueda(ttk.Frame):
         presentes.columnconfigure(0, weight=1)
         presentes.rowconfigure(0, weight=1)
         self.tabla_presentes = ttk.Treeview(
-            presentes, columns=("patente", "modalidad"), show="headings", height=4
+            presentes, columns=("patente", "ingreso", "modalidad"), show="headings", height=4
         )
         self.tabla_presentes.heading("patente", text="Patente")
+        self.tabla_presentes.heading("ingreso", text="Fecha y hora de ingreso")
         self.tabla_presentes.heading("modalidad", text="Modalidad aplicada")
-        self.tabla_presentes.column("patente", width=120)
-        self.tabla_presentes.column("modalidad", width=180)
+        self.tabla_presentes.column("patente", width=90)
+        self.tabla_presentes.column("ingreso", width=160)
+        self.tabla_presentes.column("modalidad", width=130)
         self.tabla_presentes.grid(row=0, column=0, sticky="nsew")
         barra = ttk.Scrollbar(presentes, orient="vertical", command=self.tabla_presentes.yview)
         barra.grid(row=0, column=1, sticky="ns")
         self.tabla_presentes.configure(yscrollcommand=barra.set)
         self.actualizar_presentes()
+
+        salida = ttk.LabelFrame(self, text="Salida del estacionamiento", padding=12)
+        salida.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(12, 0))
+        salida.columnconfigure(1, weight=1)
+        self.patente_salida = tk.StringVar(master=salida)
+        self.mensaje_salida = tk.StringVar(master=salida)
+        ttk.Label(salida, text="Patente").grid(row=0, column=0, sticky="w")
+        ttk.Entry(salida, textvariable=self.patente_salida).grid(
+            row=0, column=1, sticky="ew", padx=8
+        )
+        ttk.Button(salida, text="Registrar salida", command=self.salir).grid(row=0, column=2)
+        ttk.Label(salida, textvariable=self.mensaje_salida, wraplength=380).grid(
+            row=1, column=0, columnspan=3, sticky="w", pady=(8, 0)
+        )
         self.entrada.focus_set()
 
     def buscar(self, evento: tk.Event | None = None) -> None:
@@ -216,10 +255,14 @@ class VentanaBusqueda(ttk.Frame):
             self.mensaje.set(f"No se encontró un vehículo con la patente {patente or entrada}.")
             return
 
-        detalle = vehiculo.nombre_responsable
+        detalle = (
+            f"Vehículo encontrado: {vehiculo.patente}\n"
+            f"Responsable: {vehiculo.nombre_responsable}\n"
+            f"Teléfono: {vehiculo.telefono}"
+        )
         if vehiculo.marca:
-            detalle = f"{vehiculo.marca} {vehiculo.modelo}"
-        self.mensaje.set(f"Vehículo encontrado: {vehiculo.patente} · {detalle}")
+            detalle += f"\nVehículo: {vehiculo.marca} {vehiculo.modelo}".rstrip()
+        self.mensaje.set(detalle)
 
     def registrar(self) -> None:
         try:
@@ -252,7 +295,36 @@ class VentanaBusqueda(ttk.Frame):
     def actualizar_presentes(self) -> None:
         self.tabla_presentes.delete(*self.tabla_presentes.get_children())
         for estadia in self.listar_presentes():
-            self.tabla_presentes.insert("", "end", values=(estadia.patente, estadia.modalidad))
+            self.tabla_presentes.insert(
+                "", "end",
+                values=(
+                    estadia.patente,
+                    estadia.fecha_ingreso.strftime("%d/%m/%Y %H:%M:%S"),
+                    estadia.modalidad,
+                ),
+            )
+
+    def salir(self) -> None:
+        patente = self.patente_salida.get()
+        try:
+            estadia, resultado = self.registrar_salida(patente)
+        except ValueError as error:
+            self.mensaje_salida.set(str(error))
+            return
+
+        fecha_salida = estadia.fecha_salida
+        if fecha_salida is None:
+            self.mensaje_salida.set("No se pudo obtener la fecha de salida de la estadía.")
+            return
+
+        duracion = fecha_salida - estadia.fecha_ingreso
+        self.mensaje_salida.set(
+            f"Salida registrada: {normalizar_patente(patente)}\n"
+            f"Duración: {str(duracion).split('.')[0]} · Modalidad: {resultado.modalidad}\n"
+            f"Importe: ${resultado.monto_total:,}".replace(",", ".")
+        )
+        self.patente_salida.set("")
+        self.actualizar_presentes()
 
 
 def main() -> None:
@@ -264,6 +336,7 @@ def main() -> None:
         servicio.registrar_vehiculo,
         servicio.registrar_ingreso,
         servicio.listar_presentes,
+        servicio.registrar_salida,
     )
     ventana.mainloop()
 

@@ -29,7 +29,10 @@ Proyecto integrador desarrollado para la asignatura **Programación 2** — Depa
 
 Desde la raíz del repositorio, ejecuta:
 
-```bash
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 python -m ui.busqueda
 ```
 
@@ -55,3 +58,11 @@ En la ventana de búsqueda, escribe una patente y haz clic en **Buscar** o presi
 3. Intenta ingresar `ABCD12` de nuevo o usa `ZZZZ99`. La ventana avisa que el vehículo ya está dentro o que la patente no está registrada. La tabla conserva solo los ingresos aceptados.
 
 Los registros y los ingresos de esta demostración se guardan en memoria y se pierden al cerrar la aplicación.
+
+### Probar la salida del estacionamiento
+
+1. Registra el ingreso de `ABCD12` por minuto. En **Salida del estacionamiento**, escribe esa patente y pulsa **Registrar salida**. Se muestran duración, modalidad e importe, y el vehículo desaparece de **Vehículos presentes**.
+2. Repite con `EFGH34` en modalidad diaria. Las tarifas actuales del dominio son $30 por minuto iniciado y $12.000 por día iniciado, con una unidad mínima.
+3. Repite una salida o prueba una patente vacía, inválida o desconocida. Se muestra el aviso correspondiente y los vehículos presentes se conservan.
+
+La salida usa estadías simuladas en memoria y las clases de cobro de `domain/modalidades.py`. La integración del servicio completo con SQLite está pendiente.
