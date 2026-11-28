@@ -48,4 +48,10 @@ En la ventana de búsqueda, escribe una patente y haz clic en **Buscar** o presi
 2. Busca `JKLM56` para comprobar que aparece el vehículo. Si intentas registrarlo de nuevo, verás el aviso de patente duplicada.
 3. Prueba con la patente vacía, el nombre vacío o un teléfono de menos de seis caracteres para ver el mensaje correspondiente.
 
-Los registros de esta demostración se guardan en memoria y se pierden al cerrar la aplicación.
+### Probar el ingreso al estacionamiento
+
+1. En **Ingreso al estacionamiento**, ingresa `ABCD12`, selecciona **Por minuto** y haz clic en **Registrar ingreso**. La confirmación y la tabla **Vehículos presentes** muestran la modalidad aplicada.
+2. Ingresa `EFGH34` con **Diaria**. Ambos vehículos deben aparecer en la tabla con sus respectivas modalidades.
+3. Intenta ingresar `ABCD12` de nuevo o usa `ZZZZ99`. La ventana avisa que el vehículo ya está dentro o que la patente no está registrada. La tabla conserva solo los ingresos aceptados.
+
+Los registros y los ingresos de esta demostración se guardan en memoria y se pierden al cerrar la aplicación.
